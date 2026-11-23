@@ -5,14 +5,8 @@ import { fallbackSummary, normalizeNistQuery, toPublicSummary } from "@/lib/text
 
 const VULDB_URL = "https://vuldb.com/?api";
 const CVE_ID = /^CVE-\d{4}-\d{4,}$/;
-const FIELDS = [
-  "software_vendor",
-  "software_name",
-  "vulnerability_cwe",
-  "vulnerability_cvss3_nvd_basescore",
-  "vulnerability_cvss3_vuldb_basescore",
-  "countermeasure_remediationlevel",
-].join(",");
+// A consulta simples aceita no máximo três campos extras. Risco e CVE já vêm na resposta básica.
+const FIELDS = ["software_vendor", "software_name", "countermeasure_remediationlevel"].join(",");
 
 type RecordValue = Record<string, unknown>;
 
@@ -39,14 +33,26 @@ function unixDay(value: unknown): string {
 function severityFromName(name: string, score: number | null): Severity {
   const value = name.toLowerCase();
   if (value.includes("critical")) return "critical";
-  if (value === "high") return "high";
-  if (value === "medium") return "medium";
-  if (value === "low") return "low";
+  if (value.includes("high")) return "high";
+  if (value.includes("medium")) return "medium";
+  if (value.includes("low")) return "low";
   if (score === null) return "unknown";
   if (score >= 9) return "critical";
   if (score >= 7) return "high";
   if (score >= 4) return "medium";
   return "low";
+}
+
+function severityFromRisk(name: string, riskValue: unknown, score: number | null): Severity {
+  const named = severityFromName(name, score);
+  if (named !== "unknown") return named;
+  const number = typeof riskValue === "number" ? riskValue : Number(asString(riskValue));
+  if (!Number.isFinite(number)) return "unknown";
+  if (number >= 4) return "critical";
+  if (number >= 3) return "high";
+  if (number >= 2) return "medium";
+  if (number >= 1) return "low";
+  return "unknown";
 }
 
 function scoreFrom(value: unknown): number | null {
@@ -77,6 +83,7 @@ export function parseVuldbPayload(payload: unknown): { ok: boolean; error?: stri
     return { ok: false, error: "O VulDB não respondeu.", vulnerabilities: [] };
   }
   const status = asString(payload.response.status);
+  if (status === "204") return { ok: true, vulnerabilities: [] };
   if (status !== "200") {
     const message = asString(payload.response.error).toLowerCase();
     if (status === "401" || message.includes("key") || message.includes("api")) {
@@ -115,7 +122,7 @@ export function parseVuldbPayload(payload: unknown): { ok: boolean; error?: stri
       vendor,
       product,
       published,
-      severity: severityFromName(asString(risk.name), cvss),
+      severity: severityFromRisk(asString(risk.name), risk.value, cvss),
       cvss,
       kev: false,
       ransomware: null,
@@ -150,7 +157,10 @@ async function queryVuldb(params: Record<string, string>): Promise<SourceHit> {
       cache: "no-store",
     });
     if (!response.ok) return { ok: false, error: "O VulDB não respondeu.", vulnerabilities: [] };
-    return parseVuldbPayload(await response.json());
+    const payload: unknown = await response.json();
+    const report = isRecord(payload) && isRecord(payload.response) ? payload.response : {};
+    console.log(`VulDB status ${asString(report.status) || "sem status"} itens ${String(report.items ?? "0")}`);
+    return parseVuldbPayload(payload);
   } catch {
     return { ok: false, error: "O VulDB não respondeu.", vulnerabilities: [] };
   }
@@ -170,10 +180,14 @@ export async function searchVuldb(raw: string): Promise<SourceHit> {
 }
 
 export async function loadVuldbRecent(): Promise<{ items: Vuln[]; report: SourceReport }> {
-  const hit = await queryVuldb({ recent: "12" });
+  const hit = await queryVuldb({ recent: "100" });
   if (!hit.ok) {
     return { items: [], report: { id: "vuldb", label: "VulDB", ok: false, count: 0, error: hit.error } };
   }
-  const items = hit.vulnerabilities.filter((item) => item.severity === "critical" || item.severity === "high");
+  const items = hit.vulnerabilities
+    .filter((item) => item.severity === "critical" || item.severity === "high")
+    .sort((a, b) => b.published.localeCompare(a.published))
+    .slice(0, 12);
+  console.log(`VulDB lidos ${hit.vulnerabilities.length}, alta ou crítica ${items.length}`);
   return { items, report: { id: "vuldb", label: "VulDB", ok: true, count: items.length } };
 }
