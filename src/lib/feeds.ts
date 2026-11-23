@@ -58,7 +58,10 @@ function asString(value: unknown): string {
 async function fetchText(url: string, timeoutMs: number, accept: string): Promise<string> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(timeoutMs),
-    headers: { "user-agent": USER_AGENT, accept },
+    headers: {
+      accept,
+      ...(typeof window === "undefined" ? { "user-agent": USER_AGENT } : {}),
+    },
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);

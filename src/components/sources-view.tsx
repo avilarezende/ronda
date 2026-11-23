@@ -5,10 +5,12 @@ export function SourcesView({
   sources,
   fetchedAt,
   today,
+  published = false,
 }: {
   sources: SourceReport[];
   fetchedAt: string | null;
   today: string | null;
+  published?: boolean;
 }) {
   const when = fetchedAt
     ? new Intl.DateTimeFormat("pt-BR", {
@@ -23,7 +25,10 @@ export function SourcesView({
   return (
     <div className="space-y-4">
       <p className="max-w-2xl text-sm leading-relaxed text-[#3f382f]">
-        A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, a troca acontece sozinha. A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza.
+        {published
+          ? "Esta página publica a coleta às 2h, 8h, 14h e 20h, horário de Fortaleza. Recarregar coleta busca essa publicação. A busca da fila consulta o NIST ao vivo."
+          : "A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, a troca acontece sozinha."}{" "}
+        A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza.
         {today ? ` Hoje é ${formatLongDay(today)}.` : ""}
       </p>
       <ul className="grid gap-3 md:grid-cols-3">

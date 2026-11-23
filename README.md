@@ -25,3 +25,9 @@ npm run dev
 ```
 
 O servidor de desenvolvimento sobe em http://localhost:3847. O mesmo endereço em 127.0.0.1 também abre o plantão.
+
+## Página no GitHub
+
+O GitHub Pages publica a coleta pronta. Ele não executa o servidor da Ronda. A Action `.github/workflows/pages.yml` monta a página ao enviar o código para `main` e de novo às 2h, 8h, 14h e 20h, horário de Fortaleza. A busca da fila continua consultando o NIST direto do navegador.
+
+No repositório `avilarezende/ronda`, com Pages apontando para GitHub Actions, o endereço fica https://avilarezende.github.io/ronda/.

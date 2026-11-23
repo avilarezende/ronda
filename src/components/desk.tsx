@@ -8,6 +8,7 @@ import { QueueView } from "@/components/queue-view";
 import { SourcesView } from "@/components/sources-view";
 import { Button } from "@/components/ui/button";
 import { VulnSheet } from "@/components/vuln-sheet";
+import { searchNist } from "@/lib/feeds";
 import { buildRows, describePlantao, filterRows, type QueueFilter } from "@/lib/rows";
 import { useAssets, useTriage } from "@/lib/storage";
 import { formatUpdateHour } from "@/lib/schedule";
@@ -15,6 +16,9 @@ import { formatLongDay } from "@/lib/text";
 import type { Asset, FeedResponse, TriageStatus, Vuln } from "@/lib/types";
 
 type View = "briefing" | "fila" | "correcoes" | "ativos" | "fontes";
+
+const PUBLISHED = process.env.NEXT_PUBLIC_STATIC === "1";
+const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
 
 const VIEWS: Array<{ id: View; label: string }> = [
   { id: "briefing", label: "Briefing" },
@@ -73,7 +77,7 @@ export function Desk() {
 
   useEffect(() => {
     const q = query.trim();
-    const controller = new AbortController();
+    let active = true;
     const timer = window.setTimeout(() => {
       if (q.length < 3) {
         setNist([]);
@@ -81,12 +85,9 @@ export function Desk() {
         return;
       }
       setNistNote("Consultando o NIST…");
-      fetch(`/api/nist?q=${encodeURIComponent(q)}`, { signal: controller.signal, cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("nist");
-          return (await response.json()) as { ok: boolean; error?: string; vulnerabilities?: Vuln[] };
-        })
+      searchNist(q)
         .then((body) => {
+          if (!active) return;
           const vulnerabilities = body.vulnerabilities ?? [];
           setNist(vulnerabilities);
           if (!body.ok) {
@@ -99,15 +100,15 @@ export function Desk() {
               : `${vulnerabilities.length} registros no NIST para esta busca.`,
           );
         })
-        .catch((reason: unknown) => {
-          if (reason instanceof DOMException && reason.name === "AbortError") return;
+        .catch(() => {
+          if (!active) return;
           setNist([]);
           setNistNote("O NIST não respondeu.");
         });
     }, q.length < 3 ? 0 : 450);
     return () => {
+      active = false;
       window.clearTimeout(timer);
-      controller.abort();
     };
   }, [query]);
 
@@ -200,7 +201,7 @@ export function Desk() {
               disabled={loading}
               onClick={() => void refresh()}
             >
-              {loading ? "Atualizando" : "Atualizar fontes"}
+              {loading ? "Atualizando" : PUBLISHED ? "Recarregar coleta" : "Atualizar fontes"}
             </Button>
           </div>
         </aside>
@@ -257,6 +258,7 @@ export function Desk() {
               sources={feed?.sources ?? []}
               fetchedAt={feed?.fetchedAt ?? null}
               today={feed?.today ?? null}
+              published={PUBLISHED}
             />
           ) : null}
         </main>
@@ -268,7 +270,12 @@ export function Desk() {
 }
 
 async function requestFeed(refreshFeed: boolean, signal?: AbortSignal): Promise<FeedResponse> {
-  const response = await fetch(refreshFeed ? "/api/feed?refresh=1" : "/api/feed", {
+  const url = PUBLISHED
+    ? `${BASE_PATH}/feed.json${refreshFeed ? `?t=${Date.now()}` : ""}`
+    : refreshFeed
+      ? "/api/feed?refresh=1"
+      : "/api/feed";
+  const response = await fetch(url, {
     cache: "no-store",
     signal,
   });
