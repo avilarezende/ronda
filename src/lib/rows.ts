@@ -58,11 +58,16 @@ export function describePlantao(rows: Row[], today: string): { text: string; sta
 
 export type QueueFilter = "olhar" | "kev" | "ativos" | "tudo";
 
-export function filterRows(rows: Row[], filter: QueueFilter, query: string): Row[] {
+export function filterRows(
+  rows: Row[],
+  filter: QueueFilter,
+  query: string,
+  found: ReadonlySet<string> = new Set(),
+): Row[] {
   const needle = query.trim().toLowerCase();
   return rows.filter((row) => {
-    if (needle) {
-      const hay = `${row.vuln.id} ${row.vuln.vendor} ${row.vuln.product} ${row.vuln.name}`.toLowerCase();
+    if (needle && !found.has(row.vuln.id)) {
+      const hay = `${row.vuln.id} ${row.vuln.vendor} ${row.vuln.product} ${row.vuln.name} ${row.vuln.summary}`.toLowerCase();
       if (!hay.includes(needle)) return false;
     }
     if (filter === "kev") return row.vuln.kev;

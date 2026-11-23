@@ -84,6 +84,7 @@ export function Desk() {
         setNistNote(null);
         return;
       }
+      setNist([]);
       setNistNote("Consultando NIST, OSV.dev e VulDB…");
       const request = PUBLISHED
         ? searchPublic(q)
@@ -133,9 +134,10 @@ export function Desk() {
     const extra = nist.filter((item) => !known.has(item.id));
     return buildRows([...(feed?.vulnerabilities ?? []), ...extra], assets, triage, today);
   }, [feed, nist, assets, triage]);
+  const found = useMemo(() => new Set(nist.map((item) => item.id)), [nist]);
   const visible = useMemo(
-    () => filterRows(queueRows, query.trim().length >= 3 ? "tudo" : filter, query),
-    [queueRows, filter, query],
+    () => filterRows(queueRows, query.trim().length >= 3 ? "tudo" : filter, query, found),
+    [queueRows, filter, query, found],
   );
   const openRow = queueRows.find((row) => row.vuln.id === openId) ?? null;
   const failed = feed?.sources.filter((source) => !source.ok) ?? [];
