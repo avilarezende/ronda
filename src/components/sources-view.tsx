@@ -23,7 +23,7 @@ export function SourcesView({
   return (
     <div className="space-y-4">
       <p className="max-w-2xl text-sm leading-relaxed text-[#3f382f]">
-        A coleta usa fontes públicas. A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza.
+        A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, a troca acontece sozinha. A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza.
         {today ? ` Hoje é ${formatLongDay(today)}.` : ""}
       </p>
       <ul className="grid gap-3 md:grid-cols-3">
@@ -39,7 +39,7 @@ export function SourcesView({
       </ul>
       <div className="rounded-lg border border-[#ddd4c4] bg-[#fffcf7] p-4 text-sm leading-relaxed text-[#3f382f]">
         <p>
-          A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, a troca acontece sozinha. O catálogo CISA KEV reúne vulnerabilidades com uso conhecido. O NIST NVD entra com publicações recentes de severidade alta ou crítica, e a busca da fila consulta o NIST pelo produto ou pelo CVE. O CERT.br traz as novidades institucionais do centro.
+          O catálogo CISA KEV reúne vulnerabilidades com uso conhecido. O NIST NVD entra com publicações recentes de severidade alta ou crítica, e a busca da fila consulta o NIST pelo produto ou pelo CVE. O CERT.br traz as novidades institucionais do centro.
         </p>
         <p className="mt-2">
           O resumo mostrado aqui é o texto público da fonte, cortado quando descreve um artefato de ataque. Os links ficam restritos ao registro do NIST, à CISA, ao CERT.br e a avisos de fabricante.
