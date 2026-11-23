@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { containsPhrase, daysBetween, normalizeNistQuery, stripHtml, toPublicSummary } from "./text";
+import { containsPhrase, daysBetween, formatLongDay, normalizeNistQuery, stripHtml, toPublicSummary } from "./text";
 
 test("keeps an impact sentence and drops payload text", () => {
   assert.equal(
@@ -29,6 +29,10 @@ test("accepts a product or CVE for the NIST search and drops markup", () => {
   assert.equal(normalizeNistQuery("cve-2024-12345"), "cve-2024-12345");
   assert.equal(normalizeNistQuery("ab"), null);
   assert.equal(normalizeNistQuery("<script>"), null);
+});
+
+test("formats a calendar day without reading the clock", () => {
+  assert.equal(formatLongDay("2026-11-23"), "Segunda-feira, 23 de novembro");
 });
 
 test("counts calendar days", () => {

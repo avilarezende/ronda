@@ -4,9 +4,11 @@ import { formatLongDay } from "@/lib/text";
 export function SourcesView({
   sources,
   fetchedAt,
+  today,
 }: {
   sources: SourceReport[];
   fetchedAt: string | null;
+  today: string | null;
 }) {
   const when = fetchedAt
     ? new Intl.DateTimeFormat("pt-BR", {
@@ -21,7 +23,8 @@ export function SourcesView({
   return (
     <div className="space-y-4">
       <p className="max-w-2xl text-sm leading-relaxed text-[#3f382f]">
-        A coleta usa fontes públicas. A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza. Hoje é {formatLongDay()}.
+        A coleta usa fontes públicas. A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza.
+        {today ? ` Hoje é ${formatLongDay(today)}.` : ""}
       </p>
       <ul className="grid gap-3 md:grid-cols-3">
         {sources.map((source) => (

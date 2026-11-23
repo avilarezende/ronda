@@ -58,13 +58,15 @@ export function formatDay(isoDate: string): string {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function formatLongDay(now = new Date()): string {
+export function formatLongDay(isoDate: string): string {
+  const [year, month, day] = isoDate.slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return isoDate;
   const formatted = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Fortaleza",
+    timeZone: "UTC",
     weekday: "long",
     day: "numeric",
     month: "long",
-  }).format(now);
+  }).format(new Date(Date.UTC(year, month - 1, day)));
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 

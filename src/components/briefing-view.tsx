@@ -125,7 +125,7 @@ export function BriefingView({
                   <p className="text-xs text-[#6b6256]">{formatDay(notice.published)}</p>
                 ) : null}
                 {notice.summary ? (
-                  <p className="mt-1 text-sm leading-relaxed text-[#3f382f]">{notice.summary}</p>
+                  <p className="mt-1 wrap-anywhere text-sm leading-relaxed text-[#3f382f]">{notice.summary}</p>
                 ) : null}
               </li>
             ))}

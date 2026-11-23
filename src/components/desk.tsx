@@ -165,7 +165,7 @@ export function Desk() {
         <aside className="sticky top-0 hidden h-screen flex-col bg-[#1b2822] text-[#f6f1e7] md:flex">
           <div className="px-5 pt-6">
             <Wordmark />
-            <p className="mt-3 text-sm text-[#c9d5ce]">{formatLongDay()}</p>
+            {feed ? <p className="mt-3 text-sm text-[#c9d5ce]">{formatLongDay(feed.today)}</p> : null}
           </div>
           <nav className="mt-8 flex flex-col gap-1 px-3" aria-label="Seções">
             {VIEWS.map((item) => (
@@ -187,7 +187,9 @@ export function Desk() {
         </aside>
 
         <main className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8">
-          <p className="mb-4 text-sm text-[#6b6256] md:hidden">{formatLongDay()}</p>
+          {feed ? (
+            <p className="mb-4 text-sm text-[#6b6256] md:hidden">{formatLongDay(feed.today)}</p>
+          ) : null}
           {failed.length > 0 ? (
             <p className="mb-4 rounded-lg border border-[#e2c9a2] bg-[#fff6e8] px-3 py-2 text-sm text-[#6b4a16]">
               {failed.map((source) => source.error).join(" ")} O plantão segue com o que chegou.
@@ -229,7 +231,11 @@ export function Desk() {
           ) : null}
           {view === "ativos" ? <AssetsView assets={assets} onChange={updateAssets} /> : null}
           {view === "fontes" ? (
-            <SourcesView sources={feed?.sources ?? []} fetchedAt={feed?.fetchedAt ?? null} />
+            <SourcesView
+              sources={feed?.sources ?? []}
+              fetchedAt={feed?.fetchedAt ?? null}
+              today={feed?.today ?? null}
+            />
           ) : null}
         </main>
       </div>
