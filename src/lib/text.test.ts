@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { containsPhrase, daysBetween, toPublicSummary } from "./text";
+import { containsPhrase, daysBetween, stripHtml, toPublicSummary } from "./text";
 
 test("keeps an impact sentence and drops payload text", () => {
   assert.equal(
@@ -17,6 +17,11 @@ test("matches a whole phrase and ignores a fragment inside another word", () => 
   assert.equal(containsPhrase("Fortinet FortiOS", "fortios"), true);
   assert.equal(containsPhrase("Fortinet FortiOS", "ios"), false);
   assert.equal(containsPhrase("Palo Alto PAN-OS", "pan-os"), true);
+});
+
+test("removes the space left by an inline tag before punctuation", () => {
+  assert.equal(stripHtml("critérios de aceite</a>."), "critérios de aceite.");
+  assert.equal(stripHtml("ponto de partida</a> , e"), "ponto de partida, e");
 });
 
 test("counts calendar days", () => {

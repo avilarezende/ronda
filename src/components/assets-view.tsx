@@ -94,7 +94,7 @@ export function AssetsView({
             }}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>{CRITICALITY_LABEL[criticality]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="essencial">Essencial</SelectItem>

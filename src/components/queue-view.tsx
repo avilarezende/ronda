@@ -29,7 +29,7 @@ export function QueueView({
   return (
     <div>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="-mx-4 flex flex-nowrap gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
           {FILTERS.map((item) => (
             <Button
               key={item.id}
@@ -64,7 +64,7 @@ export function QueueView({
               <button
                 type="button"
                 onClick={() => onOpen(row.vuln.id)}
-                className="grid w-full gap-2 px-4 py-3 text-left hover:bg-[#f7f3ea] md:grid-cols-[9.5rem_1fr_auto] md:items-center"
+                className="flex flex-col items-start gap-2 px-4 py-3 text-left hover:bg-[#f7f3ea] md:grid md:w-full md:grid-cols-[9.5rem_1fr_auto] md:items-center"
               >
                 <span className="font-mono text-xs text-[#6b6256]">{row.vuln.id}</span>
                 <span>

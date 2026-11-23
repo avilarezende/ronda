@@ -23,4 +23,4 @@ npm test
 npm run dev
 ```
 
-O servidor de desenvolvimento sobe na porta 3847.
+O servidor de desenvolvimento sobe em http://localhost:3847. O mesmo endereço em 127.0.0.1 também abre o plantão.

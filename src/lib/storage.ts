@@ -1,3 +1,6 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
 import { DEFAULT_ASSETS } from "@/lib/defaults";
 import type { Asset, Criticality, TriageEntry, TriageStatus } from "@/lib/types";
 
@@ -46,8 +49,43 @@ export function loadAssets(): Asset[] {
   return assets.length > 0 ? assets : DEFAULT_ASSETS;
 }
 
+function emitStoreChange() {
+  window.dispatchEvent(new Event("ronda-store"));
+}
+
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener("ronda-store", onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener("ronda-store", onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+export function useAssets(): [Asset[], (assets: Asset[]) => void] {
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => window.localStorage.getItem(ASSETS_KEY) ?? "",
+    () => "",
+  );
+  const assets = raw ? loadAssetsFromRaw(raw) : DEFAULT_ASSETS;
+  return [assets, saveAssets];
+}
+
+function loadAssetsFromRaw(raw: string): Asset[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return DEFAULT_ASSETS;
+    const assets = parsed.filter(isAsset);
+    return assets.length > 0 ? assets : DEFAULT_ASSETS;
+  } catch {
+    return DEFAULT_ASSETS;
+  }
+}
+
 export function saveAssets(assets: Asset[]) {
   window.localStorage.setItem(ASSETS_KEY, JSON.stringify(assets));
+  emitStoreChange();
 }
 
 function isTriage(value: unknown): value is TriageEntry {
@@ -63,6 +101,10 @@ function isTriage(value: unknown): value is TriageEntry {
 
 export function loadTriage(): Record<string, TriageEntry> {
   const parsed = readJson(TRIAGE_KEY);
+  return triageFromParsed(parsed);
+}
+
+function triageFromParsed(parsed: unknown): Record<string, TriageEntry> {
   if (!parsed || typeof parsed !== "object") return {};
   const entries: Record<string, TriageEntry> = {};
   for (const [id, value] of Object.entries(parsed)) {
@@ -71,6 +113,27 @@ export function loadTriage(): Record<string, TriageEntry> {
   return entries;
 }
 
+export function useTriage(): [Record<string, TriageEntry>, (triage: Record<string, TriageEntry>) => void] {
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => window.localStorage.getItem(TRIAGE_KEY) ?? "",
+    () => "",
+  );
+  const triage = raw
+    ? triageFromParsed(safeParse(raw))
+    : {};
+  return [triage, saveTriage];
+}
+
+function safeParse(raw: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+}
+
 export function saveTriage(triage: Record<string, TriageEntry>) {
   window.localStorage.setItem(TRIAGE_KEY, JSON.stringify(triage));
+  emitStoreChange();
 }

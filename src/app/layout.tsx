@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className={`${sans.className} min-h-full`}>
         <TooltipProvider>
           {children}
-          <Toaster position="top-right" />
+          <Toaster position="bottom-right" />
         </TooltipProvider>
       </body>
     </html>

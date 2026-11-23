@@ -8,9 +8,9 @@ import { SourcesView } from "@/components/sources-view";
 import { Button } from "@/components/ui/button";
 import { VulnSheet } from "@/components/vuln-sheet";
 import { buildRows, describePlantao, filterRows, type QueueFilter } from "@/lib/rows";
-import { loadAssets, loadTriage, saveAssets, saveTriage } from "@/lib/storage";
+import { useAssets, useTriage } from "@/lib/storage";
 import { formatLongDay } from "@/lib/text";
-import type { Asset, FeedResponse, TriageEntry, TriageStatus } from "@/lib/types";
+import type { Asset, FeedResponse, TriageStatus } from "@/lib/types";
 
 type View = "briefing" | "fila" | "ativos" | "fontes";
 
@@ -26,8 +26,8 @@ export function Desk() {
   const [feed, setFeed] = useState<FeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assets, setAssets] = useState<Asset[]>(() => loadAssets());
-  const [triage, setTriage] = useState<Record<string, TriageEntry>>(() => loadTriage());
+  const [assets, setAssets] = useAssets();
+  const [triage, setTriage] = useTriage();
   const [filter, setFilter] = useState<QueueFilter>("olhar");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -77,16 +77,13 @@ export function Desk() {
 
   function updateAssets(next: Asset[]) {
     setAssets(next);
-    saveAssets(next);
   }
 
   function saveTriageEntry(id: string, status: TriageStatus, note: string) {
-    const next = {
+    setTriage({
       ...triage,
       [id]: { status, note, updatedAt: new Date().toISOString() },
-    };
-    setTriage(next);
-    saveTriage(next);
+    });
   }
 
   return (

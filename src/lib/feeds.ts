@@ -83,17 +83,34 @@ function allowHref(href: string): boolean {
 }
 
 function linkLabel(href: string): string {
-  const host = new URL(href).hostname;
-  if (host === "nvd.nist.gov") return "NVD";
-  if (host.endsWith("cisa.gov")) return "CISA";
-  if (host.endsWith("cert.br")) return "CERT.br";
+  const url = new URL(href);
+  if (url.hostname === "nvd.nist.gov") return "NVD";
+  if (url.hostname.endsWith("cisa.gov")) {
+    if (url.pathname.includes("known-exploited")) return "Catálogo KEV";
+    if (url.pathname.includes("/bod-")) return "Diretriz CISA";
+    return "CISA";
+  }
+  if (url.hostname.endsWith("cert.br")) return "CERT.br";
   return "Fabricante";
 }
 
+function canonicalHref(href: string): string | null {
+  try {
+    const url = new URL(href);
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase();
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function pushLink(links: ReferenceLink[], href: string) {
-  if (!allowHref(href)) return;
-  if (links.some((link) => link.href === href)) return;
-  links.push({ label: linkLabel(href), href });
+  const canonical = canonicalHref(href);
+  if (!canonical || !allowHref(canonical)) return;
+  if (links.some((link) => link.href === canonical)) return;
+  links.push({ label: linkLabel(canonical), href: canonical });
 }
 
 function severityFromScore(score: number | null): Severity {
@@ -221,10 +238,10 @@ function parseNvd(payload: unknown): Vuln[] {
       forensicTriage: false,
       dueDate: null,
       cwes,
-      references: [
-        { label: "NVD", href: `https://nvd.nist.gov/vuln/detail/${id}` },
-        ...nvdReferences(cve),
-      ],
+      references: collectLinks([
+        `https://nvd.nist.gov/vuln/detail/${id}`,
+        ...nvdReferences(cve).map((link) => link.href),
+      ]),
       sources: ["nvd"],
     });
   }
@@ -273,14 +290,11 @@ function parseKev(payload: unknown, today: string): Vuln[] {
       forensicTriage: asString(entry.forensicTriage) === "Yes",
       dueDate: asString(entry.dueDate) || null,
       cwes,
-      references: [
-        { label: "NVD", href: `https://nvd.nist.gov/vuln/detail/${id}` },
-        {
-          label: "CISA",
-          href: `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${id}`,
-        },
-        ...noteLinks(asString(entry.notes)),
-      ],
+      references: collectLinks([
+        `https://nvd.nist.gov/vuln/detail/${id}`,
+        `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${id}`,
+        ...noteLinks(asString(entry.notes)).map((link) => link.href),
+      ]),
       sources: ["cisa-kev"],
     });
   }
@@ -340,13 +354,14 @@ function merge(kev: Vuln[], nvd: Vuln[]): Vuln[] {
   });
 }
 
+function collectLinks(hrefs: string[]): ReferenceLink[] {
+  const links: ReferenceLink[] = [];
+  for (const href of hrefs) pushLink(links, href);
+  return links;
+}
+
 function dedupeLinks(links: ReferenceLink[]): ReferenceLink[] {
-  const seen = new Set<string>();
-  return links.filter((link) => {
-    if (seen.has(link.href)) return false;
-    seen.add(link.href);
-    return true;
-  });
+  return collectLinks(links.map((link) => link.href));
 }
 
 async function loadKev(today: string): Promise<{ items: Vuln[]; report: SourceReport }> {

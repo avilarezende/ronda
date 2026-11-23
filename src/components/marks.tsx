@@ -21,7 +21,7 @@ export function PriorityMark({ priority }: { priority: Priority }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium tracking-wide",
+        "inline-flex h-5 w-fit max-w-full items-center justify-self-start rounded-full px-2 text-[11px] font-medium tracking-wide",
         priorityClass[priority],
       )}
     >

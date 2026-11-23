@@ -91,8 +91,8 @@ function TriageForm({
                 <p className="text-xs text-[#6b6256]">{row.vuln.cwes.join(" · ")}</p>
               ) : null}
               <ul className="flex flex-wrap gap-3 text-sm">
-                {row.vuln.references.map((link) => (
-                  <li key={link.href}>
+                {row.vuln.references.map((link, index) => (
+                  <li key={`${link.href}-${index}`}>
                     <a
                       href={link.href}
                       target="_blank"
@@ -113,7 +113,7 @@ function TriageForm({
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>{STATUS_LABEL[status]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {STATUSES.map(([value, label]) => (
