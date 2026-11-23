@@ -3,7 +3,9 @@
 Bancada diária para o acompanhamento de vulnerabilidades. A Ronda junta três fontes públicas, cruza o resultado com os ativos que você cadastrar e organiza a triagem do plantão.
 
 - **CISA KEV**: vulnerabilidades com uso conhecido, dos últimos 120 dias.
-- **NIST NVD**: publicações recentes de severidade alta ou crítica. A busca da fila também consulta o NIST pelo produto ou pelo identificador CVE.
+- **NIST NVD**: publicações recentes de severidade alta ou crítica.
+- **OSV.dev**: confirma o pacote afetado e se há versão corrigida. A busca da fila também consulta o OSV.dev pelo pacote ou pelo CVE.
+- **VulDB**: registros recentes de severidade alta ou crítica, e a busca por produto ou CVE. Precisa da chave `VULDB_API_KEY` no servidor. Sem a chave, as outras fontes seguem e Fontes explica a ausência.
 - **CERT.br**: novidades do centro.
 
 A lista de ativos e a triagem ficam neste navegador. A orientação de cada item é confirmar se o produto está no ambiente e aplicar a atualização publicada pelo fabricante.
@@ -12,7 +14,7 @@ A lista de ativos e a triagem ficam neste navegador. A orientação de cada item
 
 1. Abra o briefing. Ele resume o que entrou no KEV, o que conversa com seus ativos e o que ainda não foi triado.
 2. Em **Ativos**, apague os exemplos que não existem no seu ambiente e cadastre os produtos que você opera. A correspondência usa a frase inteira da palavra-chave.
-3. Em **Fila**, busque um produto ou um CVE. A busca olha a fila local e o NIST. Abra um item, registre a triagem e uma nota.
+3. Em **Fila**, busque um produto ou um CVE. A busca olha a fila local, o NIST, o OSV.dev e o VulDB. Abra um item, registre a triagem e uma nota.
 4. **Correções** reúne o que tem atualização do fabricante ou contorno publicado pela CISA. Essas marcas também aparecem na prioridade do briefing.
 5. A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, ela atualiza sozinha nesses horários. **Atualizar fontes** busca de novo antes disso.
 

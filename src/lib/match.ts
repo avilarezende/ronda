@@ -21,6 +21,8 @@ export function assess(vuln: Vuln, assets: Asset[], today: string): Match {
     score += 40;
     reasons.push("Consta no catálogo CISA KEV");
   }
+  if (vuln.sources.includes("osv")) reasons.push("O OSV.dev tem registro deste item");
+  if (vuln.sources.includes("vuldb")) reasons.push("O VulDB tem registro deste item");
   if (vuln.ransomware === "Known") {
     score += 20;
     reasons.push("A CISA registrou uso em campanha de ransomware");

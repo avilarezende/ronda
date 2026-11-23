@@ -47,8 +47,8 @@ export function QueueView({
         <Input
           value={query}
           onChange={(event) => onQuery(event.target.value)}
-          placeholder="Buscar na fila e no NIST"
-          aria-label="Buscar na fila e no NIST"
+          placeholder="Buscar na fila, no NIST, no OSV.dev e no VulDB"
+          aria-label="Buscar na fila, no NIST, no OSV.dev e no VulDB"
           className="md:max-w-xs"
         />
       </div>
@@ -78,6 +78,8 @@ export function QueueView({
                     <span>{formatDay(row.vuln.published)}</span>
                     <SeverityMark severity={row.vuln.severity} score={row.vuln.cvss} />
                     {row.vuln.kev ? <span>KEV</span> : null}
+                    {row.vuln.sources.includes("osv") ? <span>OSV.dev</span> : null}
+                    {row.vuln.sources.includes("vuldb") ? <span>VulDB</span> : null}
                     {row.match.assets.length > 0 ? (
                       <span>{row.match.assets.map((asset) => asset.name).join(", ")}</span>
                     ) : null}

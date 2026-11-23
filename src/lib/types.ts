@@ -1,6 +1,8 @@
 export type Severity = "critical" | "high" | "medium" | "low" | "unknown";
 
-export type SourceId = "cisa-kev" | "nvd" | "certbr";
+export type SourceId = "cisa-kev" | "nvd" | "osv" | "vuldb" | "certbr";
+
+export type VulnSource = Exclude<SourceId, "certbr">;
 
 export type TriageStatus =
   | "nova"
@@ -41,7 +43,7 @@ export type Vuln = {
   dueDate: string | null;
   cwes: string[];
   references: ReferenceLink[];
-  sources: Array<"cisa-kev" | "nvd">;
+  sources: VulnSource[];
   remediation: Remediation | null;
 };
 

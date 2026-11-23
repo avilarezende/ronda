@@ -34,8 +34,10 @@ function vuln(overrides: Partial<Vuln> = {}): Vuln {
 }
 
 test("ranks an essential KEV match as urgent", () => {
-  const match = assess(vuln(), [forti], "2026-11-23");
+  const match = assess(vuln({ sources: ["cisa-kev", "osv", "vuldb"] }), [forti], "2026-11-23");
   assert.equal(match.priority, "urgente");
+  assert.ok(match.reasons.some((reason) => reason.includes("OSV.dev")));
+  assert.ok(match.reasons.some((reason) => reason.includes("VulDB")));
   assert.equal(match.assets[0]?.name, "Fortinet");
   assert.ok(match.reasons.some((reason) => reason.includes("essencial")));
 });

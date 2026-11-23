@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchNist } from "@/lib/feeds";
+import { searchNist } from "@/lib/nist";
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("q") ?? "";

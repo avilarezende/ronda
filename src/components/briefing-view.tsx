@@ -5,6 +5,11 @@ import type { Row } from "@/lib/rows";
 import type { Notice, SourceReport } from "@/lib/types";
 import { formatDay } from "@/lib/text";
 
+function sourceList(labels: string[]): string {
+  if (labels.length <= 1) return labels[0] ?? "";
+  return `${labels.slice(0, -1).join(", ")} e ${labels[labels.length - 1]}`;
+}
+
 export function BriefingView({
   text,
   stats,
@@ -48,7 +53,7 @@ export function BriefingView({
             name="Coleta"
             detail={
               collected === sources.length
-                ? "CISA KEV, NIST NVD e CERT.br responderam."
+                ? `${sourceList(sources.map((source) => source.label))} responderam.`
                 : `${collected} de ${sources.length} fontes responderam. O restante fica registrado em Fontes.`
             }
           />
@@ -87,7 +92,11 @@ export function BriefingView({
                   className="w-full px-4 py-4 text-left hover:bg-[#f7f3ea]"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs text-[#6b6256]">{row.vuln.id}</span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs text-[#6b6256]">{row.vuln.id}</span>
+                      {row.vuln.sources.includes("osv") ? <span className="text-[11px] text-[#6b6256]">OSV.dev</span> : null}
+                      {row.vuln.sources.includes("vuldb") ? <span className="text-[11px] text-[#6b6256]">VulDB</span> : null}
+                    </span>
                     <span className="flex flex-wrap justify-end gap-1.5">
                       {row.vuln.remediation ? <FixMark kind={row.vuln.remediation.kind} /> : null}
                       <PriorityMark priority={row.match.priority} />

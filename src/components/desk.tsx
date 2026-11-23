@@ -8,7 +8,7 @@ import { QueueView } from "@/components/queue-view";
 import { SourcesView } from "@/components/sources-view";
 import { Button } from "@/components/ui/button";
 import { VulnSheet } from "@/components/vuln-sheet";
-import { searchNist } from "@/lib/feeds";
+import { searchPublic } from "@/lib/public-search";
 import { buildRows, describePlantao, filterRows, type QueueFilter } from "@/lib/rows";
 import { useAssets, useTriage } from "@/lib/storage";
 import { formatUpdateHour } from "@/lib/schedule";
@@ -84,26 +84,27 @@ export function Desk() {
         setNistNote(null);
         return;
       }
-      setNistNote("Consultando o NIST…");
-      searchNist(q)
+      setNistNote("Consultando NIST, OSV.dev e VulDB…");
+      const request = PUBLISHED
+        ? searchPublic(q)
+        : fetch(`/api/search?q=${encodeURIComponent(q)}`, { cache: "no-store" }).then(async (response) => {
+            if (!response.ok) throw new Error("search");
+            return (await response.json()) as { ok: boolean; error?: string; note?: string; vulnerabilities?: Vuln[] };
+          });
+      request
         .then((body) => {
           if (!active) return;
-          const vulnerabilities = body.vulnerabilities ?? [];
-          setNist(vulnerabilities);
+          setNist(body.vulnerabilities ?? []);
           if (!body.ok) {
-            setNistNote(body.error ?? "O NIST não respondeu.");
+            setNistNote(body.note || body.error || "A busca não respondeu.");
             return;
           }
-          setNistNote(
-            vulnerabilities.length === 1
-              ? "1 registro no NIST para esta busca."
-              : `${vulnerabilities.length} registros no NIST para esta busca.`,
-          );
+          setNistNote(body.note ?? "");
         })
         .catch(() => {
           if (!active) return;
           setNist([]);
-          setNistNote("O NIST não respondeu.");
+          setNistNote("A busca não respondeu.");
         });
     }, q.length < 3 ? 0 : 450);
     return () => {
