@@ -1,5 +1,5 @@
 import { PRIORITY_LABEL, SEVERITY_LABEL, STATUS_LABEL } from "@/lib/defaults";
-import type { Priority, Severity, TriageStatus } from "@/lib/types";
+import type { Priority, RemediationKind, Severity, TriageStatus } from "@/lib/types";
 import { cn } from "cn";
 
 const priorityClass: Record<Priority, string> = {
@@ -35,6 +35,19 @@ export function SeverityMark({ severity, score }: { severity: Severity; score: n
     <span className={cn("text-xs font-medium", severityClass[severity])}>
       {SEVERITY_LABEL[severity]}
       {score !== null ? ` ${score.toFixed(1)}` : ""}
+    </span>
+  );
+}
+
+export function FixMark({ kind }: { kind: RemediationKind }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 w-fit items-center rounded-full px-2 text-[11px] font-medium",
+        kind === "correcao" ? "bg-[#1f4336] text-[#f3f7f4]" : "bg-[#e7efe9] text-[#1f4336]",
+      )}
+    >
+      {kind === "correcao" ? "Correção" : "Contorno"}
     </span>
   );
 }

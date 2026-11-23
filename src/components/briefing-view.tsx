@@ -1,4 +1,4 @@
-import { PriorityMark } from "@/components/marks";
+import { FixMark, PriorityMark } from "@/components/marks";
 import type { BriefingInput } from "@/lib/briefing";
 import { defensiveAction } from "@/lib/match";
 import type { Row } from "@/lib/rows";
@@ -88,7 +88,10 @@ export function BriefingView({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-mono text-xs text-[#6b6256]">{row.vuln.id}</span>
-                    <PriorityMark priority={row.match.priority} />
+                    <span className="flex flex-wrap justify-end gap-1.5">
+                      {row.vuln.remediation ? <FixMark kind={row.vuln.remediation.kind} /> : null}
+                      <PriorityMark priority={row.match.priority} />
+                    </span>
                   </div>
                   <p className="mt-1 font-serif text-lg text-[#1c1915]">
                     {row.vuln.vendor} {row.vuln.product}

@@ -28,6 +28,7 @@ function vuln(overrides: Partial<Vuln> = {}): Vuln {
     cwes: ["CWE-287"],
     references: [],
     sources: ["cisa-kev"],
+    remediation: { kind: "correcao", summary: "Há correção publicada pelo fabricante." },
     ...overrides,
   };
 }

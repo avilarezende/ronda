@@ -78,6 +78,7 @@ function TriageForm({
               </div>
               <p className="text-sm leading-relaxed text-[#3f382f]">{row.vuln.summary}</p>
               <div className="rounded-lg bg-[#e7f0eb] px-3 py-3 text-sm leading-relaxed text-[#1f4336]">
+                {row.vuln.remediation ? <span className="mb-1 block font-medium">{row.vuln.remediation.summary}</span> : null}
                 {defensiveAction(row.vuln, row.match.assets.length > 0)}
               </div>
               {row.match.reasons.length > 0 ? (

@@ -1,4 +1,5 @@
-import type { FeedResponse, Notice, ReferenceLink, Severity, SourceReport, Vuln } from "@/lib/types";
+import { nextUpdate } from "@/lib/schedule";
+import type { FeedResponse, Notice, ReferenceLink, Remediation, Severity, SourceReport, Vuln } from "@/lib/types";
 import { cweName, fallbackSummary, fortalezaToday, normalizeNistQuery, stripHtml, toPublicSummary } from "@/lib/text";
 
 const CISA_URL =
@@ -6,7 +7,6 @@ const CISA_URL =
 const NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 const CERT_URL = "https://cert.br/rss/";
 const USER_AGENT = "ronda-plantao/0.1";
-const TTL_MS = 10 * 60 * 1000;
 const CVE_ID = /^CVE-\d{4}-\d{4,}$/;
 
 const ALLOWED_HOSTS = new Set([
@@ -189,20 +189,49 @@ function cwesFromNvd(cve: RecordValue): string[] {
   return [...ids];
 }
 
-function nvdReferences(cve: RecordValue): ReferenceLink[] {
+const PATCH_TAGS = new Set(["Vendor Advisory", "Patch", "Release Notes"]);
+
+function nvdReferences(cve: RecordValue): { links: ReferenceLink[]; patch: boolean; mitigation: boolean } {
   const links: ReferenceLink[] = [];
+  let patch = false;
+  let mitigation = false;
   const references = Array.isArray(cve.references) ? cve.references : [];
   for (const reference of references) {
     if (!isRecord(reference)) continue;
     const tags = Array.isArray(reference.tags) ? reference.tags.map(asString) : [];
-    const useful = tags.some((tag) =>
-      ["Vendor Advisory", "Patch", "Mitigation", "Release Notes"].includes(tag),
-    );
-    if (!useful && tags.length > 0) continue;
-    if (tags.length === 0) continue;
+    const isPatch = tags.some((tag) => PATCH_TAGS.has(tag));
+    const isMitigation = tags.includes("Mitigation");
+    if (!isPatch && !isMitigation) continue;
+    const before = links.length;
     pushLink(links, asString(reference.url));
+    if (links.length === before) continue;
+    if (isPatch) patch = true;
+    if (isMitigation) mitigation = true;
   }
-  return links;
+  return { links, patch, mitigation };
+}
+
+function remediationFor(input: { patch: boolean; mitigation: boolean; kev: boolean }): Remediation | null {
+  if (input.patch) {
+    return {
+      kind: "correcao",
+      summary: "Há correção publicada pelo fabricante. Aplique a atualização indicada no aviso.",
+    };
+  }
+  if (input.mitigation || input.kev) {
+    return {
+      kind: "contorno",
+      summary: "Enquanto a atualização não estiver aplicada, siga o contorno publicado pelo fabricante ou pela CISA.",
+    };
+  }
+  return null;
+}
+
+function preferRemediation(current: Remediation | null, incoming: Remediation | null): Remediation | null {
+  if (current?.kind === "correcao" || incoming?.kind === "correcao") {
+    return current?.kind === "correcao" ? current : incoming;
+  }
+  return current ?? incoming;
 }
 
 function parseNvd(payload: unknown): Vuln[] {
@@ -221,6 +250,7 @@ function parseNvd(payload: unknown): Vuln[] {
     const { vendor, product } = productFromNvd(cve);
     const { score, severity } = cvssFromNvd(cve);
     const cwes = cwesFromNvd(cve);
+    const references = nvdReferences(cve);
     const name = cwes[0]
       ? `${product} — ${cweName(cwes[0])}`
       : `${product} — vulnerabilidade publicada`;
@@ -240,9 +270,10 @@ function parseNvd(payload: unknown): Vuln[] {
       cwes,
       references: collectLinks([
         `https://nvd.nist.gov/vuln/detail/${id}`,
-        ...nvdReferences(cve).map((link) => link.href),
+        ...references.links.map((link) => link.href),
       ]),
       sources: ["nvd"],
+      remediation: remediationFor({ patch: references.patch, mitigation: references.mitigation, kev: false }),
     });
   }
   return items;
@@ -273,6 +304,8 @@ function parseKev(payload: unknown, today: string): Vuln[] {
     const cwes = Array.isArray(entry.cwes)
       ? entry.cwes.map(asString).filter((cwe) => /^CWE-\d+$/.test(cwe))
       : [];
+    const notes = noteLinks(asString(entry.notes));
+    const patch = notes.some((link) => link.label === "Fabricante");
     items.push({
       id,
       name: asString(entry.vulnerabilityName) || `${product} — vulnerabilidade no KEV`,
@@ -293,9 +326,10 @@ function parseKev(payload: unknown, today: string): Vuln[] {
       references: collectLinks([
         `https://nvd.nist.gov/vuln/detail/${id}`,
         `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${id}`,
-        ...noteLinks(asString(entry.notes)).map((link) => link.href),
+        ...notes.map((link) => link.href),
       ]),
       sources: ["cisa-kev"],
+      remediation: remediationFor({ patch, mitigation: !patch, kev: true }),
     });
   }
   return items.sort((a, b) => b.published.localeCompare(a.published)).slice(0, 160);
@@ -346,6 +380,7 @@ function merge(kev: Vuln[], nvd: Vuln[]): Vuln[] {
       cwes: item.cwes.length > 0 ? item.cwes : existing.cwes,
       references: dedupeLinks([...item.references, ...existing.references]),
       sources: ["cisa-kev", "nvd"],
+      remediation: preferRemediation(item.remediation, existing.remediation),
     });
   }
   return [...byId.values()].sort((a, b) => {
@@ -515,8 +550,10 @@ async function loadCert(): Promise<{ notices: Notice[]; report: SourceReport }> 
 async function collect(): Promise<FeedResponse> {
   const today = fortalezaToday();
   const [kev, nvd, cert] = await Promise.all([loadKev(today), loadNvd(), loadCert()]);
+  const expiresAt = nextUpdate(new Date()).toISOString();
   return {
     fetchedAt: new Date().toISOString(),
+    nextUpdate: expiresAt,
     today,
     sources: [kev.report, nvd.report, cert.report],
     vulnerabilities: merge(kev.items, nvd.items),
@@ -529,7 +566,8 @@ export async function loadFeed(force = false): Promise<FeedResponse> {
   if (cache && cache.expires > now && (!force || now - cache.fetchedAt < 60_000)) return cache.body;
   const body = await collect();
   const coreDown = body.sources.filter((source) => source.id !== "certbr").every((source) => !source.ok);
-  cache = { expires: now + (coreDown ? 20_000 : TTL_MS), fetchedAt: now, body };
+  const expires = coreDown ? now + 20_000 : Date.parse(body.nextUpdate);
+  cache = { expires, fetchedAt: now, body };
   return body;
 }
 

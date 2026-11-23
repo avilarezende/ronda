@@ -3,20 +3,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AssetsView } from "@/components/assets-view";
 import { BriefingView } from "@/components/briefing-view";
+import { FixesView } from "@/components/fixes-view";
 import { QueueView } from "@/components/queue-view";
 import { SourcesView } from "@/components/sources-view";
 import { Button } from "@/components/ui/button";
 import { VulnSheet } from "@/components/vuln-sheet";
 import { buildRows, describePlantao, filterRows, type QueueFilter } from "@/lib/rows";
 import { useAssets, useTriage } from "@/lib/storage";
+import { formatUpdateHour } from "@/lib/schedule";
 import { formatLongDay } from "@/lib/text";
 import type { Asset, FeedResponse, TriageStatus, Vuln } from "@/lib/types";
 
-type View = "briefing" | "fila" | "ativos" | "fontes";
+type View = "briefing" | "fila" | "correcoes" | "ativos" | "fontes";
 
 const VIEWS: Array<{ id: View; label: string }> = [
   { id: "briefing", label: "Briefing" },
   { id: "fila", label: "Fila" },
+  { id: "correcoes", label: "Correções" },
   { id: "ativos", label: "Ativos" },
   { id: "fontes", label: "Fontes" },
 ];
@@ -108,6 +111,15 @@ export function Desk() {
     };
   }, [query]);
 
+  useEffect(() => {
+    if (!feed?.nextUpdate) return;
+    const delay = Date.parse(feed.nextUpdate) - Date.now();
+    const timer = window.setTimeout(() => {
+      void refresh();
+    }, Math.max(delay, 1_000));
+    return () => window.clearTimeout(timer);
+  }, [feed?.nextUpdate, refresh]);
+
   const rows = useMemo(
     () => (feed ? buildRows(feed.vulnerabilities, assets, triage, feed.today) : []),
     [feed, assets, triage],
@@ -165,7 +177,14 @@ export function Desk() {
         <aside className="sticky top-0 hidden h-screen flex-col bg-[#1b2822] text-[#f6f1e7] md:flex">
           <div className="px-5 pt-6">
             <Wordmark />
-            {feed ? <p className="mt-3 text-sm text-[#c9d5ce]">{formatLongDay(feed.today)}</p> : null}
+            {feed ? (
+              <p className="mt-3 text-sm text-[#c9d5ce]">
+                {formatLongDay(feed.today)}
+                <span className="mt-1 block text-xs text-[#b7c6be]">
+                  Próxima coleta às {formatUpdateHour(feed.nextUpdate)}
+                </span>
+              </p>
+            ) : null}
           </div>
           <nav className="mt-8 flex flex-col gap-1 px-3" aria-label="Seções">
             {VIEWS.map((item) => (
@@ -188,7 +207,9 @@ export function Desk() {
 
         <main className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8">
           {feed ? (
-            <p className="mb-4 text-sm text-[#6b6256] md:hidden">{formatLongDay(feed.today)}</p>
+            <p className="mb-4 text-sm text-[#6b6256] md:hidden">
+              {formatLongDay(feed.today)} · próxima coleta às {formatUpdateHour(feed.nextUpdate)}
+            </p>
           ) : null}
           {failed.length > 0 ? (
             <p className="mb-4 rounded-lg border border-[#e2c9a2] bg-[#fff6e8] px-3 py-2 text-sm text-[#6b4a16]">
@@ -218,6 +239,7 @@ export function Desk() {
               onOpen={setOpenId}
             />
           ) : null}
+          {view === "correcoes" ? <FixesView rows={queueRows} onOpen={setOpenId} /> : null}
           {view === "fila" ? (
             <QueueView
               rows={visible}

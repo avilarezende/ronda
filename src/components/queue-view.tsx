@@ -1,4 +1,4 @@
-import { PriorityMark, SeverityMark, StatusMark } from "@/components/marks";
+import { FixMark, PriorityMark, SeverityMark, StatusMark } from "@/components/marks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { QueueFilter, Row } from "@/lib/rows";
@@ -82,6 +82,7 @@ export function QueueView({
                       <span>{row.match.assets.map((asset) => asset.name).join(", ")}</span>
                     ) : null}
                     <StatusMark status={row.status} />
+                    {row.vuln.remediation ? <FixMark kind={row.vuln.remediation.kind} /> : null}
                   </span>
                 </span>
                 <PriorityMark priority={row.match.priority} />

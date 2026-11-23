@@ -13,7 +13,8 @@ A lista de ativos e a triagem ficam neste navegador. A orientação de cada item
 1. Abra o briefing. Ele resume o que entrou no KEV, o que conversa com seus ativos e o que ainda não foi triado.
 2. Em **Ativos**, apague os exemplos que não existem no seu ambiente e cadastre os produtos que você opera. A correspondência usa a frase inteira da palavra-chave.
 3. Em **Fila**, busque um produto ou um CVE. A busca olha a fila local e o NIST. Abra um item, registre a triagem e uma nota.
-4. **Atualizar fontes** busca de novo. A consulta fica em cache por cerca de 10 minutos.
+4. **Correções** reúne o que tem atualização do fabricante ou contorno publicado pela CISA. Essas marcas também aparecem na prioridade do briefing.
+5. A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, ela atualiza sozinha nesses horários. **Atualizar fontes** busca de novo antes disso.
 
 ## Rodar localmente
 

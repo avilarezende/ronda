@@ -19,6 +19,13 @@ export type ReferenceLink = {
   href: string;
 };
 
+export type RemediationKind = "correcao" | "contorno";
+
+export type Remediation = {
+  kind: RemediationKind;
+  summary: string;
+};
+
 export type Vuln = {
   id: string;
   name: string;
@@ -35,6 +42,7 @@ export type Vuln = {
   cwes: string[];
   references: ReferenceLink[];
   sources: Array<"cisa-kev" | "nvd">;
+  remediation: Remediation | null;
 };
 
 export type Notice = {
@@ -69,6 +77,7 @@ export type SourceReport = {
 
 export type FeedResponse = {
   fetchedAt: string;
+  nextUpdate: string;
   today: string;
   sources: SourceReport[];
   vulnerabilities: Vuln[];
