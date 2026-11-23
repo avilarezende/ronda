@@ -1,5 +1,5 @@
 import type { FeedResponse, Notice, ReferenceLink, Severity, SourceReport, Vuln } from "@/lib/types";
-import { cweName, fallbackSummary, fortalezaToday, stripHtml, toPublicSummary } from "@/lib/text";
+import { cweName, fallbackSummary, fortalezaToday, normalizeNistQuery, stripHtml, toPublicSummary } from "@/lib/text";
 
 const CISA_URL =
   "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json";
@@ -84,7 +84,7 @@ function allowHref(href: string): boolean {
 
 function linkLabel(href: string): string {
   const url = new URL(href);
-  if (url.hostname === "nvd.nist.gov") return "NVD";
+  if (url.hostname === "nvd.nist.gov") return "NIST";
   if (url.hostname.endsWith("cisa.gov")) {
     if (url.pathname.includes("known-exploited")) return "Catálogo KEV";
     if (url.pathname.includes("/bod-")) return "Diretriz CISA";
@@ -395,7 +395,7 @@ async function loadNvd(): Promise<{ items: Vuln[]; report: SourceReport }> {
     const head = JSON.parse(headText) as unknown;
     const total = isRecord(head) && typeof head.totalResults === "number" ? head.totalResults : 0;
     if (total === 0) {
-      return { items: [], report: { id: "nvd", label: "NVD", ok: true, count: 0 } };
+      return { items: [], report: { id: "nvd", label: "NIST NVD", ok: true, count: 0 } };
     }
     const page = Math.min(80, total);
     const startIndex = Math.max(0, total - page);
@@ -410,19 +410,83 @@ async function loadNvd(): Promise<{ items: Vuln[]; report: SourceReport }> {
       .slice(0, 30);
     return {
       items: recent,
-      report: { id: "nvd", label: "NVD", ok: true, count: recent.length },
+      report: { id: "nvd", label: "NIST NVD", ok: true, count: recent.length },
     };
   } catch {
     return {
       items: [],
       report: {
         id: "nvd",
-        label: "NVD",
+        label: "NIST NVD",
         ok: false,
         count: 0,
-        error: "A NVD não respondeu.",
+        error: "O NIST não respondeu.",
       },
     };
+  }
+}
+
+export type NistSearch = {
+  query: string;
+  ok: boolean;
+  error?: string;
+  vulnerabilities: Vuln[];
+};
+
+const nistCache = new Map<string, { expires: number; body: NistSearch }>();
+
+function pickNistHits(items: Vuln[]): Vuln[] {
+  const ranked = [...items].sort((a, b) => b.published.localeCompare(a.published));
+  const preferred = ranked.filter(
+    (item) => item.severity === "critical" || item.severity === "high" || item.severity === "medium",
+  );
+  if (preferred.length >= 5) return preferred.slice(0, 15);
+  const selected = new Set(preferred);
+  const rest = ranked.filter((item) => !selected.has(item));
+  return [...preferred, ...rest].slice(0, 8);
+}
+
+async function nvdSearchPage(params: string): Promise<{ total: number; items: Vuln[] }> {
+  const text = await fetchText(`${NVD_URL}?${params}`, 20_000, "application/json");
+  const payload = JSON.parse(text) as unknown;
+  const total = isRecord(payload) && typeof payload.totalResults === "number" ? payload.totalResults : 0;
+  return { total, items: parseNvd(payload) };
+}
+
+async function newestNistKeyword(query: string): Promise<Vuln[]> {
+  const search = `keywordSearch=${encodeURIComponent(query)}`;
+  const head = await nvdSearchPage(`resultsPerPage=1&startIndex=0&${search}`);
+  if (head.total === 0) return [];
+  const page = Math.min(30, head.total);
+  const startIndex = Math.max(0, head.total - page);
+  const tail = await nvdSearchPage(`resultsPerPage=${page}&startIndex=${startIndex}&${search}`);
+  return tail.items;
+}
+
+export async function searchNist(raw: string): Promise<NistSearch> {
+  const query = normalizeNistQuery(raw);
+  if (!query) return { query: raw.trim(), ok: true, vulnerabilities: [] };
+  const key = query.toLowerCase();
+  const cached = nistCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.body;
+  try {
+    const cve = query.toUpperCase();
+    let items: Vuln[];
+    if (CVE_ID.test(cve)) {
+      const page = await nvdSearchPage(`cveId=${encodeURIComponent(cve)}`);
+      items = page.items;
+    } else {
+      items = pickNistHits(await newestNistKeyword(query));
+    }
+    const body: NistSearch = { query, ok: true, vulnerabilities: items };
+    nistCache.set(key, { expires: Date.now() + 2 * 60 * 1000, body });
+    if (nistCache.size > 40) {
+      const oldest = nistCache.keys().next().value;
+      if (oldest) nistCache.delete(oldest);
+    }
+    return body;
+  } catch {
+    return { query, ok: false, error: "O NIST não respondeu.", vulnerabilities: [] };
   }
 }
 

@@ -48,7 +48,7 @@ export function BriefingView({
             name="Coleta"
             detail={
               collected === sources.length
-                ? "CISA KEV, NVD e CERT.br responderam."
+                ? "CISA KEV, NIST NVD e CERT.br responderam."
                 : `${collected} de ${sources.length} fontes responderam. O restante fica registrado em Fontes.`
             }
           />

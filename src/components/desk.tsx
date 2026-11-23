@@ -10,7 +10,7 @@ import { VulnSheet } from "@/components/vuln-sheet";
 import { buildRows, describePlantao, filterRows, type QueueFilter } from "@/lib/rows";
 import { useAssets, useTriage } from "@/lib/storage";
 import { formatLongDay } from "@/lib/text";
-import type { Asset, FeedResponse, TriageStatus } from "@/lib/types";
+import type { Asset, FeedResponse, TriageStatus, Vuln } from "@/lib/types";
 
 type View = "briefing" | "fila" | "ativos" | "fontes";
 
@@ -30,6 +30,8 @@ export function Desk() {
   const [triage, setTriage] = useTriage();
   const [filter, setFilter] = useState<QueueFilter>("olhar");
   const [query, setQuery] = useState("");
+  const [nist, setNist] = useState<Vuln[]>([]);
+  const [nistNote, setNistNote] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -66,13 +68,62 @@ export function Desk() {
     };
   }, []);
 
+  useEffect(() => {
+    const q = query.trim();
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      if (q.length < 3) {
+        setNist([]);
+        setNistNote(null);
+        return;
+      }
+      setNistNote("Consultando o NIST…");
+      fetch(`/api/nist?q=${encodeURIComponent(q)}`, { signal: controller.signal, cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("nist");
+          return (await response.json()) as { ok: boolean; error?: string; vulnerabilities?: Vuln[] };
+        })
+        .then((body) => {
+          const vulnerabilities = body.vulnerabilities ?? [];
+          setNist(vulnerabilities);
+          if (!body.ok) {
+            setNistNote(body.error ?? "O NIST não respondeu.");
+            return;
+          }
+          setNistNote(
+            vulnerabilities.length === 1
+              ? "1 registro no NIST para esta busca."
+              : `${vulnerabilities.length} registros no NIST para esta busca.`,
+          );
+        })
+        .catch((reason: unknown) => {
+          if (reason instanceof DOMException && reason.name === "AbortError") return;
+          setNist([]);
+          setNistNote("O NIST não respondeu.");
+        });
+    }, q.length < 3 ? 0 : 450);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
+
   const rows = useMemo(
     () => (feed ? buildRows(feed.vulnerabilities, assets, triage, feed.today) : []),
     [feed, assets, triage],
   );
   const plantao = useMemo(() => (feed ? describePlantao(rows, feed.today) : null), [feed, rows]);
-  const visible = useMemo(() => filterRows(rows, filter, query), [rows, filter, query]);
-  const openRow = rows.find((row) => row.vuln.id === openId) ?? null;
+  const queueRows = useMemo(() => {
+    const today = feed?.today ?? "1970-01-01";
+    const known = new Set((feed?.vulnerabilities ?? []).map((item) => item.id));
+    const extra = nist.filter((item) => !known.has(item.id));
+    return buildRows([...(feed?.vulnerabilities ?? []), ...extra], assets, triage, today);
+  }, [feed, nist, assets, triage]);
+  const visible = useMemo(
+    () => filterRows(queueRows, query.trim().length >= 3 ? "tudo" : filter, query),
+    [queueRows, filter, query],
+  );
+  const openRow = queueRows.find((row) => row.vuln.id === openId) ?? null;
   const failed = feed?.sources.filter((source) => !source.ok) ?? [];
 
   function updateAssets(next: Asset[]) {
@@ -152,7 +203,7 @@ export function Desk() {
           ) : null}
           {loading && !feed && !error ? (
             <p className="text-sm text-[#5c564c]">
-              Consultando o catálogo CISA KEV, a NVD e o CERT.br. A primeira leitura pode levar alguns segundos.
+              Consultando o catálogo CISA KEV, o NIST NVD e o CERT.br. A primeira leitura pode levar alguns segundos.
             </p>
           ) : null}
           {feed && plantao && view === "briefing" ? (
@@ -165,11 +216,12 @@ export function Desk() {
               onOpen={setOpenId}
             />
           ) : null}
-          {feed && view === "fila" ? (
+          {view === "fila" ? (
             <QueueView
               rows={visible}
               filter={filter}
               query={query}
+              nistNote={nistNote}
               onFilter={setFilter}
               onQuery={setQuery}
               onOpen={setOpenId}

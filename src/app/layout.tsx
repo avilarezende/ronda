@@ -17,7 +17,7 @@ const serif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "Ronda · Plantão de vulnerabilidades",
   description:
-    "Bancada diária para acompanhar o catálogo CISA KEV, publicações recentes da NVD e novidades do CERT.br.",
+    "Bancada diária para acompanhar o catálogo CISA KEV, o NIST NVD e as novidades do CERT.br.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

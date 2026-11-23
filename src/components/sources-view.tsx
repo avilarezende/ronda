@@ -36,10 +36,10 @@ export function SourcesView({
       </ul>
       <div className="rounded-lg border border-[#ddd4c4] bg-[#fffcf7] p-4 text-sm leading-relaxed text-[#3f382f]">
         <p>
-          O catálogo CISA KEV reúne vulnerabilidades com uso conhecido. A NVD entra só com publicações recentes de severidade alta ou crítica. O CERT.br traz as novidades institucionais do centro.
+          O catálogo CISA KEV reúne vulnerabilidades com uso conhecido. O NIST NVD entra com publicações recentes de severidade alta ou crítica, e a busca da fila consulta o NIST pelo produto ou pelo CVE. O CERT.br traz as novidades institucionais do centro.
         </p>
         <p className="mt-2">
-          O resumo mostrado aqui é o texto público da fonte, cortado quando descreve um artefato de ataque. Os links ficam restritos ao registro da NVD, à CISA, ao CERT.br e a avisos de fabricante.
+          O resumo mostrado aqui é o texto público da fonte, cortado quando descreve um artefato de ataque. Os links ficam restritos ao registro do NIST, à CISA, ao CERT.br e a avisos de fabricante.
         </p>
       </div>
     </div>

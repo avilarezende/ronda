@@ -10,6 +10,12 @@ export function normalize(value: string): string {
     .trim();
 }
 
+export function normalizeNistQuery(value: string): string | null {
+  const cleaned = value.trim().replace(/\s+/g, " ").slice(0, 80);
+  if (!/^[\p{L}\p{N} ._+-]{3,80}$/u.test(cleaned)) return null;
+  return cleaned;
+}
+
 export function containsPhrase(haystack: string, phrase: string): boolean {
   const needle = normalize(phrase);
   if (needle.length < 3) return false;

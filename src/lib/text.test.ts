@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { containsPhrase, daysBetween, stripHtml, toPublicSummary } from "./text";
+import { containsPhrase, daysBetween, normalizeNistQuery, stripHtml, toPublicSummary } from "./text";
 
 test("keeps an impact sentence and drops payload text", () => {
   assert.equal(
@@ -22,6 +22,13 @@ test("matches a whole phrase and ignores a fragment inside another word", () => 
 test("removes the space left by an inline tag before punctuation", () => {
   assert.equal(stripHtml("critérios de aceite</a>."), "critérios de aceite.");
   assert.equal(stripHtml("ponto de partida</a> , e"), "ponto de partida, e");
+});
+
+test("accepts a product or CVE for the NIST search and drops markup", () => {
+  assert.equal(normalizeNistQuery("  OpenSSL 3 "), "OpenSSL 3");
+  assert.equal(normalizeNistQuery("cve-2024-12345"), "cve-2024-12345");
+  assert.equal(normalizeNistQuery("ab"), null);
+  assert.equal(normalizeNistQuery("<script>"), null);
 });
 
 test("counts calendar days", () => {

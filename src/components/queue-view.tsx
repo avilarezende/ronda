@@ -15,6 +15,7 @@ export function QueueView({
   rows,
   filter,
   query,
+  nistNote,
   onFilter,
   onQuery,
   onOpen,
@@ -22,6 +23,7 @@ export function QueueView({
   rows: Row[];
   filter: QueueFilter;
   query: string;
+  nistNote: string | null;
   onFilter: (filter: QueueFilter) => void;
   onQuery: (query: string) => void;
   onOpen: (id: string) => void;
@@ -45,13 +47,14 @@ export function QueueView({
         <Input
           value={query}
           onChange={(event) => onQuery(event.target.value)}
-          placeholder="Buscar CVE, fabricante ou produto"
-          aria-label="Buscar na fila"
+          placeholder="Buscar na fila e no NIST"
+          aria-label="Buscar na fila e no NIST"
           className="md:max-w-xs"
         />
       </div>
       <p className="mt-3 text-xs text-[#6b6256]">
         {rows.length === 1 ? "1 item" : `${rows.length} itens`}
+        {nistNote ? ` · ${nistNote}` : ""}
       </p>
       {rows.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed border-[#d3c8b4] bg-[#fffcf7] px-4 py-8 text-sm text-[#5c564c]">
