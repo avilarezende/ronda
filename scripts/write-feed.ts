@@ -12,6 +12,9 @@ async function main() {
 
   await mkdir("public", { recursive: true });
   await writeFile("public/feed.json", JSON.stringify(body));
+  for (const source of body.sources) {
+    console.log(`${source.label}: ${source.ok ? String(source.count) : (source.error ?? "falhou")}`);
+  }
   console.log(`Coleta com ${body.vulnerabilities.length} itens. Próxima atualização: ${body.nextUpdate}`);
 }
 

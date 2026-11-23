@@ -34,6 +34,7 @@ jobs:
       - run: node scripts/build-pages.mjs
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          VULDB_API_KEY: ${{ secrets.VULDB_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

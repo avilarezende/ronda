@@ -30,6 +30,6 @@ O servidor de desenvolvimento sobe em http://localhost:3847. O mesmo endereço e
 
 ## Página no GitHub
 
-O GitHub Pages publica a coleta pronta. Ele não executa o servidor da Ronda. A Action `.github/workflows/pages.yml` monta a página ao enviar o código para `main` e de novo às 2h, 8h, 14h e 20h, horário de Fortaleza. A busca da fila continua consultando o NIST direto do navegador.
+O GitHub Pages publica a coleta pronta. Ele não executa o servidor da Ronda. A Action `.github/workflows/pages.yml` monta a página ao enviar o código para `main` e de novo às 2h, 8h, 14h e 20h, horário de Fortaleza. Essa coleta lê o secret `VULDB_API_KEY` do repositório. A busca da fila, na página publicada, consulta NIST e OSV.dev direto do navegador; o VulDB dessa página é o da coleta.
 
 No repositório `avilarezende/ronda`, com Pages apontando para GitHub Actions, o endereço fica https://avilarezende.github.io/ronda/.
