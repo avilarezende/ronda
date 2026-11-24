@@ -22,6 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { STATUS_LABEL } from "@/lib/defaults";
 import { defensiveAction } from "@/lib/match";
+import type { SaveResult } from "@/lib/storage";
 import type { Row } from "@/lib/rows";
 import type { TriageStatus } from "@/lib/types";
 import { formatDay } from "@/lib/text";
@@ -35,7 +36,7 @@ export function VulnSheet({
 }: {
   row: Row | null;
   onClose: () => void;
-  onSave: (id: string, status: TriageStatus, note: string) => void;
+  onSave: (id: string, status: TriageStatus, note: string) => SaveResult;
 }) {
   return (
     <Sheet open={row !== null} onOpenChange={(open) => !open && onClose()}>
@@ -53,7 +54,7 @@ function TriageForm({
   onSave,
 }: {
   row: Row;
-  onSave: (id: string, status: TriageStatus, note: string) => void;
+  onSave: (id: string, status: TriageStatus, note: string) => SaveResult;
 }) {
   const [status, setStatus] = useState<TriageStatus>(row.status);
   const [note, setNote] = useState(row.note);
@@ -137,12 +138,16 @@ function TriageForm({
               <Button
                 type="button"
                 onClick={() => {
-                  onSave(row.vuln.id, status, note);
-                  toast.success("Triagem salva neste navegador.");
+                  const saved = onSave(row.vuln.id, status, note);
+                  if (saved.ok) toast.success("Triagem gravada neste navegador. Ela não vai para o GitHub.");
+                  else toast.error(saved.error);
                 }}
               >
                 Salvar triagem
               </Button>
+              <p className="text-xs text-[#6b6256]">
+                A triagem e a nota ficam neste navegador, mesmo depois de fechar a aba, e não vão para o GitHub.
+              </p>
             </div>
     </>
   );

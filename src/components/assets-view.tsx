@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CRITICALITY_LABEL, DEFAULT_ASSETS } from "@/lib/defaults";
+import type { SaveResult } from "@/lib/storage";
 import type { Asset, Criticality } from "@/lib/types";
 
 export function AssetsView({
@@ -19,7 +20,7 @@ export function AssetsView({
   onChange,
 }: {
   assets: Asset[];
-  onChange: (assets: Asset[]) => void;
+  onChange: (assets: Asset[]) => SaveResult;
 }) {
   const [name, setName] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -36,7 +37,7 @@ export function AssetsView({
       toast.error("Informe o nome e ao menos uma palavra-chave com 3 caracteres.");
       return;
     }
-    onChange([
+    const saved = onChange([
       {
         id: crypto.randomUUID(),
         name: name.trim(),
@@ -46,10 +47,19 @@ export function AssetsView({
       },
       ...assets,
     ]);
+    if (!saved.ok) {
+      toast.error(saved.error);
+      return;
+    }
     setName("");
     setKeywords("");
     setNote("");
-    toast.success("Ativo incluído na correspondência.");
+    toast.success("Ativo gravado neste navegador. A lista não vai para o GitHub.");
+  }
+
+  function changeCriticality(id: string, next: Criticality) {
+    const saved = onChange(assets.map((asset) => (asset.id === id ? { ...asset, criticality: next } : asset)));
+    if (!saved.ok) toast.error(saved.error);
   }
 
   return (
@@ -116,17 +126,19 @@ export function AssetsView({
       </form>
 
       <div>
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
           <p className="text-sm text-[#5c564c]">
-            Ponto de partida para um ambiente de tribunal e de rede acadêmica. Apague o que não existir e inclua o que você opera.
+            Apague o que não existir no seu ambiente e inclua o que você opera. A lista fica neste navegador. Se você esvaziar, ela continua vazia até restaurar os exemplos.
           </p>
           <Button
             type="button"
             variant="outline"
             size="sm"
+            className="shrink-0"
             onClick={() => {
-              onChange(DEFAULT_ASSETS);
-              toast.success("Lista de exemplo restaurada.");
+              const saved = onChange(DEFAULT_ASSETS);
+              if (saved.ok) toast.success("Lista de exemplo gravada neste navegador.");
+              else toast.error(saved.error);
             }}
           >
             Restaurar exemplos
@@ -143,7 +155,28 @@ export function AssetsView({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">{asset.name}</p>
-                    <p className="text-xs text-[#6b6256]">{CRITICALITY_LABEL[asset.criticality]}</p>
+                    <div className="mt-2 max-w-40">
+                      <Label className="sr-only" htmlFor={`asset-criticality-${asset.id}`}>
+                        Criticidade de {asset.name}
+                      </Label>
+                      <Select
+                        value={asset.criticality}
+                        onValueChange={(value) => {
+                          if (value === "essencial" || value === "importante" || value === "apoio") {
+                            changeCriticality(asset.id, value);
+                          }
+                        }}
+                      >
+                        <SelectTrigger id={`asset-criticality-${asset.id}`} className="w-full">
+                          <SelectValue>{CRITICALITY_LABEL[asset.criticality]}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="essencial">Essencial</SelectItem>
+                          <SelectItem value="importante">Importante</SelectItem>
+                          <SelectItem value="apoio">Apoio</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <Button
                     type="button"
@@ -154,9 +187,13 @@ export function AssetsView({
                         setPendingDelete(asset.id);
                         return;
                       }
-                      onChange(assets.filter((item) => item.id !== asset.id));
+                      const saved = onChange(assets.filter((item) => item.id !== asset.id));
+                      if (!saved.ok) {
+                        toast.error(saved.error);
+                        return;
+                      }
                       setPendingDelete(null);
-                      toast.success("Ativo removido.");
+                      toast.success("Ativo removido neste navegador.");
                     }}
                   >
                     {pendingDelete === asset.id ? "Confirmar remoção" : "Remover"}

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { VulnSheet } from "@/components/vuln-sheet";
 import { searchPublic } from "@/lib/public-search";
 import { buildRows, describePlantao, filterRows, type QueueFilter } from "@/lib/rows";
-import { useAssets, useTriage } from "@/lib/storage";
+import { usePlantaoStore } from "@/lib/storage";
 import { formatUpdateHour } from "@/lib/schedule";
 import { formatLongDay } from "@/lib/text";
 import type { Asset, FeedResponse, TriageStatus, Vuln } from "@/lib/types";
@@ -33,8 +33,8 @@ export function Desk() {
   const [feed, setFeed] = useState<FeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [assets, setAssets] = useAssets();
-  const [triage, setTriage] = useTriage();
+  const store = usePlantaoStore();
+  const { assets, triage, ready } = store;
   const [filter, setFilter] = useState<QueueFilter>("olhar");
   const [query, setQuery] = useState("");
   const [nist, setNist] = useState<Vuln[]>([]);
@@ -45,6 +45,7 @@ export function Desk() {
     setLoading(true);
     setError(null);
     try {
+      // A coleta nova substitui só o feed. Ativos, triagem e notas continuam no navegador.
       setFeed(await requestFeed(true));
     } catch {
       setError("Não foi possível consultar as fontes agora.");
@@ -143,14 +144,11 @@ export function Desk() {
   const failed = feed?.sources.filter((source) => !source.ok) ?? [];
 
   function updateAssets(next: Asset[]) {
-    setAssets(next);
+    return store.saveAssets(next);
   }
 
   function saveTriageEntry(id: string, status: TriageStatus, note: string) {
-    setTriage({
-      ...triage,
-      [id]: { status, note, updatedAt: new Date().toISOString() },
-    });
+    return store.saveTriageEntry(id, status, note);
   }
 
   return (
@@ -210,6 +208,9 @@ export function Desk() {
         </aside>
 
         <main className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8">
+          <p className="mb-4 text-sm text-[#6b6256]">
+            Ativos, triagem e notas ficam neste navegador, mesmo depois de fechar a aba, e não são enviados ao GitHub.
+          </p>
           {feed ? (
             <p className="mb-4 text-sm text-[#6b6256] md:hidden">
               {formatLongDay(feed.today)} · próxima coleta às {formatUpdateHour(feed.nextUpdate)}
@@ -228,12 +229,15 @@ export function Desk() {
               </Button>
             </div>
           ) : null}
-          {loading && !feed && !error ? (
+          {!ready ? (
+            <p className="text-sm text-[#5c564c]">Lendo ativos e triagem gravados neste navegador…</p>
+          ) : null}
+          {ready && loading && !feed && !error ? (
             <p className="text-sm text-[#5c564c]">
               Consultando o catálogo CISA KEV, o NIST NVD e o CERT.br. A primeira leitura pode levar alguns segundos.
             </p>
           ) : null}
-          {feed && plantao && view === "briefing" ? (
+          {ready && feed && plantao && view === "briefing" ? (
             <BriefingView
               text={plantao.text}
               stats={plantao.stats}
@@ -243,8 +247,8 @@ export function Desk() {
               onOpen={setOpenId}
             />
           ) : null}
-          {view === "correcoes" ? <FixesView rows={queueRows} onOpen={setOpenId} /> : null}
-          {view === "fila" ? (
+          {ready && view === "correcoes" ? <FixesView rows={queueRows} onOpen={setOpenId} /> : null}
+          {ready && view === "fila" ? (
             <QueueView
               rows={visible}
               filter={filter}
@@ -255,8 +259,8 @@ export function Desk() {
               onOpen={setOpenId}
             />
           ) : null}
-          {view === "ativos" ? <AssetsView assets={assets} onChange={updateAssets} /> : null}
-          {view === "fontes" ? (
+          {ready && view === "ativos" ? <AssetsView assets={assets} onChange={updateAssets} /> : null}
+          {ready && view === "fontes" ? (
             <SourcesView
               sources={feed?.sources ?? []}
               fetchedAt={feed?.fetchedAt ?? null}
@@ -267,7 +271,7 @@ export function Desk() {
         </main>
       </div>
 
-      <VulnSheet row={openRow} onClose={() => setOpenId(null)} onSave={saveTriageEntry} />
+      <VulnSheet row={ready ? openRow : null} onClose={() => setOpenId(null)} onSave={saveTriageEntry} />
     </div>
   );
 }

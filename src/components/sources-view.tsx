@@ -28,7 +28,7 @@ export function SourcesView({
         {published
           ? "Esta página publica a coleta às 2h, 8h, 14h e 20h, horário de Fortaleza. Recarregar coleta busca essa publicação. A busca da fila consulta o NIST ao vivo."
           : "A coleta renova às 2h, 8h, 14h e 20h, horário de Fortaleza. Com o painel aberto, a troca acontece sozinha."}{" "}
-        A lista de ativos e a triagem ficam neste navegador. Última consulta: {when}, horário de Fortaleza.
+        Ativos, triagem e notas ficam neste navegador, mesmo depois de fechar a aba, e não são enviados ao GitHub. Última consulta: {when}, horário de Fortaleza.
         {today ? ` Hoje é ${formatLongDay(today)}.` : ""}
       </p>
       <ul className="grid gap-3 md:grid-cols-3">
