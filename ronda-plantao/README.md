@@ -5,6 +5,7 @@ Agente do Agent SDK para o plantão defensivo da Ronda. A forma de rodar, as var
 Na raiz do repositório:
 
 ```bash
+npm install --prefix ronda-plantao
 npx --yes "@grok/agent-sdk@0.7.2" dev ./ronda-plantao
 ```
 

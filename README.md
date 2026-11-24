@@ -41,6 +41,7 @@ A pasta `ronda-plantao` é um agente do Agent SDK para o plantão. Ele lê a col
 Na raiz do repositório:
 
 ```bash
+npm install --prefix ronda-plantao
 npx --yes "@grok/agent-sdk@0.7.2" dev ./ronda-plantao
 ```
 
