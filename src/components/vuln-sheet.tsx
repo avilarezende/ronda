@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PriorityMark, SeverityMark } from "@/components/marks";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,27 @@ function TriageForm({
 }) {
   const [status, setStatus] = useState<TriageStatus>(row.status);
   const [note, setNote] = useState(row.note);
+  const stored = useRef({ status: row.status, note: row.note });
+  const saveRef = useRef(onSave);
+  useEffect(() => {
+    saveRef.current = onSave;
+  }, [onSave]);
+
+  const persist = useCallback((nextStatus: TriageStatus, nextNote: string) => {
+    if (nextStatus === stored.current.status && nextNote === stored.current.note) return { ok: true } as SaveResult;
+    const saved = saveRef.current(row.vuln.id, nextStatus, nextNote);
+    if (saved.ok) stored.current = { status: nextStatus, note: nextNote };
+    else toast.error(saved.error);
+    return saved;
+  }, [row.vuln.id]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => persist(status, note), 400);
+    return () => {
+      window.clearTimeout(timer);
+      persist(status, note);
+    };
+  }, [note, persist, status]);
 
   return (
     <>
@@ -138,9 +159,8 @@ function TriageForm({
               <Button
                 type="button"
                 onClick={() => {
-                  const saved = onSave(row.vuln.id, status, note);
+                  const saved = persist(status, note);
                   if (saved.ok) toast.success("Triagem gravada neste navegador. Ela não vai para o GitHub.");
-                  else toast.error(saved.error);
                 }}
               >
                 Salvar triagem

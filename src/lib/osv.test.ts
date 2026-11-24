@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseOsvRecord } from "./osv";
-import { parseVuldbPayload } from "./vuldb";
+import { parseVuldbPayload, publishedVuldb } from "./vuldb";
 
 test("reads an OSV record as a package fix and drops exploit details", () => {
   const item = parseOsvRecord({
@@ -65,6 +65,24 @@ test("reads a basic VulDB entry and ignores exploit text in the title", () => {
   assert.equal(parsed.vulnerabilities[0]?.remediation?.kind, "correcao");
   assert.equal(parsed.vulnerabilities[0]?.references.some((link) => link.label === "VulDB"), true);
   assert.equal(parsed.vulnerabilities[1]?.summary.includes("vulnerable"), false);
+});
+
+test("reads VulDB items from a published collection", () => {
+  const parsed = publishedVuldb({
+    sources: [{ id: "vuldb", label: "VulDB", ok: true, count: 1 }],
+    vulnerabilities: [
+      {
+        id: "CVE-2026-1",
+        sources: ["vuldb"],
+        severity: "high",
+      },
+      { id: "CVE-2026-2", sources: ["nvd"] },
+    ],
+  });
+  assert.equal(parsed?.report.ok, true);
+  assert.equal(parsed?.report.count, 1);
+  assert.deepEqual(parsed?.items.map((item) => item.id), ["CVE-2026-1"]);
+  assert.equal(publishedVuldb({ sources: [{ id: "vuldb", ok: false, error: "O VulDB precisa da chave VULDB_API_KEY." }] }), null);
 });
 
 test("reports a missing VulDB key without echoing it", () => {

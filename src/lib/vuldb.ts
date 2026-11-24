@@ -4,6 +4,7 @@ import type { Severity, SourceReport, Vuln } from "@/lib/types";
 import { fallbackSummary, normalizeNistQuery, toPublicSummary } from "@/lib/text";
 
 const VULDB_URL = "https://vuldb.com/?api";
+const PUBLISHED_FEED = "https://avilarezende.github.io/ronda/feed.json";
 const CVE_ID = /^CVE-\d{4}-\d{4,}$/;
 // A consulta simples aceita no máximo três campos extras. Risco e CVE já vêm na resposta básica.
 const FIELDS = ["software_vendor", "software_name", "countermeasure_remediationlevel"].join(",");
@@ -179,9 +180,38 @@ export async function searchVuldb(raw: string): Promise<SourceHit> {
   };
 }
 
+export function publishedVuldb(payload: unknown): { items: Vuln[]; report: SourceReport } | null {
+  if (!isRecord(payload) || !Array.isArray(payload.sources) || !Array.isArray(payload.vulnerabilities)) return null;
+  const report = payload.sources.find((item) => isRecord(item) && item.id === "vuldb");
+  if (!isRecord(report) || report.ok !== true) return null;
+  const items = payload.vulnerabilities.filter((item): item is Vuln => {
+    if (!isRecord(item) || typeof item.id !== "string" || !Array.isArray(item.sources)) return false;
+    return item.sources.includes("vuldb");
+  });
+  const count = typeof report.count === "number" ? report.count : items.length;
+  return { items, report: { id: "vuldb", label: "VulDB", ok: true, count } };
+}
+
+async function loadPublishedVuldb(): Promise<{ items: Vuln[]; report: SourceReport } | null> {
+  try {
+    const response = await fetch(PUBLISHED_FEED, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) return null;
+    return publishedVuldb(await response.json());
+  } catch {
+    return null;
+  }
+}
+
 export async function loadVuldbRecent(): Promise<{ items: Vuln[]; report: SourceReport }> {
   const hit = await queryVuldb({ recent: "100" });
   if (!hit.ok) {
+    if (hit.error === "O VulDB precisa da chave VULDB_API_KEY.") {
+      const published = await loadPublishedVuldb();
+      if (published) return published;
+    }
     return { items: [], report: { id: "vuldb", label: "VulDB", ok: false, count: 0, error: hit.error } };
   }
   const items = hit.vulnerabilities

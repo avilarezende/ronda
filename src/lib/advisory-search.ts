@@ -10,7 +10,11 @@ export async function searchAdvisories(raw: string) {
     const existing = byId.get(item.id);
     byId.set(item.id, existing ? mergeVuln(existing, item) : item);
   }
-  const vuldbNote = vuldb.ok ? `${vuldb.vulnerabilities.length} no VulDB` : vuldb.error;
+  const vuldbNote = vuldb.ok
+    ? `${vuldb.vulnerabilities.length} no VulDB`
+    : vuldb.error === "O VulDB precisa da chave VULDB_API_KEY."
+      ? "o VulDB desta consulta é o da coleta publicada"
+      : vuldb.error;
   const note = [pub.note.replace(" · o VulDB desta página é o da coleta publicada", ""), vuldbNote]
     .filter(Boolean)
     .join(" · ");
