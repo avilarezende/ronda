@@ -33,3 +33,36 @@ O servidor de desenvolvimento sobe em http://localhost:3847. O mesmo endereço e
 O GitHub Pages publica a coleta pronta. Ele não executa o servidor da Ronda. A Action `.github/workflows/pages.yml` monta a página ao enviar o código para `main` e de novo às 2h, 8h, 14h e 20h, horário de Fortaleza. Essa coleta lê o secret `VULDB_API_KEY` do repositório. A busca da fila, na página publicada, consulta NIST e OSV.dev direto do navegador; o VulDB dessa página é o da coleta.
 
 No repositório `avilarezende/ronda`, com Pages apontando para GitHub Actions, o endereço fica https://avilarezende.github.io/ronda/.
+
+## Agente local no Cursor
+
+A pasta `ronda-plantao` é um agente do Agent SDK para o plantão. Ele lê a coleta, destaca vulnerabilidades altas e críticas e lembra a triagem e a correção publicada pelo fabricante ou o contorno da CISA. A triagem continua no navegador. O agente não descreve exploração.
+
+Na raiz do repositório:
+
+```bash
+npx --yes "@grok/agent-sdk@0.7.2" dev ./ronda-plantao
+```
+
+Abra http://127.0.0.1:3000/playground. O painel Next continua em http://127.0.0.1:3847.
+
+Na primeira vez, entre na conta Cursor, no seu terminal:
+
+```bash
+npx --yes "@grok/agent-sdk@0.7.2" login
+```
+
+Um turno direto, sem deixar o servidor aberto:
+
+```bash
+npx --yes "@grok/agent-sdk@0.7.2" run --dir ./ronda-plantao --message "Qual o plantão de hoje?"
+```
+
+O agente não lê `VULDB_API_KEY`. Essa chave continua só na Action do GitHub Pages. Sem ela, a página segue com as outras fontes e o agente diz se a coleta veio sem VulDB.
+
+Variáveis opcionais, sem valor neste repositório:
+
+- `RONDA_FEED_URL`: endereço da coleta. O padrão é https://avilarezende.github.io/ronda/feed.json. A bancada local usa http://127.0.0.1:3847/api/feed.
+- `RONDA_FEED_FILE`: caminho de um JSON no formato da coleta, se a rede não responder.
+
+Se a coleta não abrir, o agente responde com uma lista de exemplo e avisa que não é o plantão do dia.
