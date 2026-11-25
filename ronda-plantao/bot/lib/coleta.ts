@@ -96,7 +96,14 @@ function severidade(value: unknown): SeveridadeItem {
 }
 
 function nota(value: unknown): number | null {
-  const numero = typeof value === "number" ? value : Number(texto(value, 8));
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || value < 0 || value > 10) return null;
+    return Math.round(value * 10) / 10;
+  }
+  if (typeof value !== "string") return null;
+  const bruto = texto(value, 8);
+  if (!bruto) return null;
+  const numero = Number(bruto);
   if (!Number.isFinite(numero) || numero < 0 || numero > 10) return null;
   return Math.round(numero * 10) / 10;
 }
